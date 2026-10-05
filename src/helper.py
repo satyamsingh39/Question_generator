@@ -62,7 +62,7 @@
 #     document_ques_gen, document_answer_gen = file_processing(file_path)
 
 #     llm_ques_gen_pipeline = ChatGroq(
-#         model="llama-3.1-8b-instant",
+#         model="openai/gpt-oss-20b",
 #         temperature=0.3,  # Lower temperature for faster, more focused responses
 #     )
 
@@ -86,7 +86,7 @@
 #     vector_store = FAISS.from_documents(document_answer_gen, embeddings)
 
 #     llm_answer_gen = ChatGroq(
-#         model="llama-3.1-8b-instant",
+#         model="openai/gpt-oss-20b",
 #         temperature=0.3,  # Lower temperature for faster responses
 #     )
 
@@ -163,20 +163,20 @@ def file_processing(file_path):
     return document_ques_gen, document_answer_gen
 
 
-def llm_pipeline(file_path):
+def llm_pipeline(file_path, question_type="Short Answer", difficulty="Medium"):
 
     document_ques_gen, document_answer_gen = file_processing(file_path)
 
     # Groq Llama model
     llm_ques_gen_pipeline = ChatGroq(
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-20b",
         temperature=0.3
     )
 
     # Question generation prompt
     PROMPT_QUESTIONS = PromptTemplate(
         template=prompt_template,
-        input_variables=["text"]
+        input_variables=["text", "question_type", "difficulty"]
     )
 
     # Prepare document text
@@ -186,7 +186,9 @@ def llm_pipeline(file_path):
 
     # Generate questions
     formatted_prompt = PROMPT_QUESTIONS.format(
-        text=document_text
+        text=document_text,
+        question_type=question_type,
+        difficulty=difficulty
     )
 
     response = llm_ques_gen_pipeline.invoke(
@@ -208,7 +210,7 @@ def llm_pipeline(file_path):
 
     # Answer generation LLM
     llm_answer_gen = ChatGroq(
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-20b",
         temperature=0.3
     )
 
@@ -228,14 +230,18 @@ def llm_pipeline(file_path):
     )
 
     # Modern replacement for old RetrievalQA
-    def answer_question(question):
-        docs = retriever.invoke(question)
+    class AnswerGenerator:
+        def __call__(self, question):
+            return self.run(question)
 
-        context = "\n\n".join(
-            doc.page_content for doc in docs
-        )
+        def run(self, question):
+            docs = retriever.invoke(question)
 
-        answer_prompt = f"""
+            context = "\n\n".join(
+                doc.page_content for doc in docs
+            )
+
+            answer_prompt = f"""
 Answer the following question using ONLY the provided context.
 
 Context:
@@ -247,12 +253,11 @@ Question:
 Give a clear and concise answer.
 """
 
-        result = llm_answer_gen.invoke(answer_prompt)
+            result = llm_answer_gen.invoke(answer_prompt)
 
-        return result.content
+            return result.content
 
-    # Keep the same variable name/interface concept
-    answer_generation_chain = answer_question
+    answer_generation_chain = AnswerGenerator()
 
     # IMPORTANT:
     # Keep the original return structure:

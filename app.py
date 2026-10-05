@@ -17,7 +17,11 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"request": request}
+    )
 
 
 @app.post("/upload")
@@ -34,8 +38,12 @@ async def chat(request: Request, pdf_file: bytes = File(), filename: str = Form(
 
 
 
-def get_csv(file_path):
-    answer_generation_chain, ques_list = llm_pipeline(file_path)
+def get_csv(file_path, question_type="Short Answer", difficulty="Medium"):
+    answer_generation_chain, ques_list = llm_pipeline(
+        file_path=file_path,
+        question_type=question_type,
+        difficulty=difficulty
+    )
     base_folder = 'static/output/'
     if not os.path.isdir(base_folder):
         os.mkdir(base_folder)
@@ -44,28 +52,50 @@ def get_csv(file_path):
     # Limit to first 10 questions for faster processing
     # Remove this limit if you want all questions
     ques_list = ques_list[:10]
+    qa_list = []
 
-    with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
+    # Using utf-8-sig adds BOM so Excel opens CSV without garbled Unicode/characters
+    with open(output_file, "w", newline="", encoding="utf-8-sig") as csvfile:
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow(["Question", "Answer"])  # Writing the header row
 
         for idx, question in enumerate(ques_list, 1):
-            print(f"Processing question {idx}/{len(ques_list)}: {question}")
+            try:
+                print(f"Processing question {idx}/{len(ques_list)}: {question}")
+            except UnicodeEncodeError:
+                print(f"Processing question {idx}/{len(ques_list)}: {question.encode('ascii', errors='replace').decode()}")
             answer = answer_generation_chain.run(question)
-            print(f"Answer: {answer}")
+            try:
+                print(f"Answer: {answer}")
+            except UnicodeEncodeError:
+                print(f"Answer: {answer.encode('ascii', errors='replace').decode()}")
             print("--------------------------------------------------\n\n")
 
             # Save answer to CSV file
             csv_writer.writerow([question, answer])
-    return output_file
+            qa_list.append({
+                "number": idx,
+                "question": question,
+                "answer": answer
+            })
+    return output_file, qa_list
 
 
 
 @app.post("/analyze")
-async def chat(request: Request, pdf_filename: str = Form(...)):
+async def chat(
+    request: Request,
+    pdf_filename: str = Form(...),
+    question_type: str = Form("Short Answer"),
+    difficulty: str = Form("Medium")
+):
     try:
-        output_file = get_csv(pdf_filename)
-        return {"output_file": output_file}
+        output_file, qa_list = get_csv(
+            file_path=pdf_filename,
+            question_type=question_type,
+            difficulty=difficulty
+        )
+        return {"output_file": output_file, "qa_list": qa_list}
     except Exception as e:
         import traceback
         error_msg = str(e)

@@ -1,15 +1,24 @@
 
 prompt_template = """
-    You are an expert at creating questions based on coding materials and documentation.
-    Your goal is to prepare a coder or programmer for their exam and coding tests.
-    You do this by asking questions about the text below:
+    You are an expert at creating questions based on educational and technical materials.
+    Your goal is to prepare learners with high quality practice questions.
 
+    Generate questions of the following type: {question_type}
+    Difficulty level: {difficulty}
+
+    Instructions based on Question Type:
+    - If question type is "MCQ": Provide multiple-choice questions. Format each question clearly on a single line or as a distinct question item with 4 distinct options (A, B, C, D).
+    - If question type is "Short Answer": Provide clear, concise conceptual questions that require a brief explanation or answer.
+    - If question type is "True/False": Provide clear statements and ask whether the statement is True or False.
+
+    Text to base questions on:
     ------------
     {text}
     ------------
 
-    Create questions that will prepare the coders or programmers for their tests.
+    Create questions matching the requested difficulty ({difficulty}) and format ({question_type}).
     Make sure not to lose any important information.
+    Provide each question ending with a question mark (?) or period (.).
 
     QUESTIONS:
     """

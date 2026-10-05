@@ -26,7 +26,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 600px;
+            max-width: 800px;
             width: 100%;
         }
 
@@ -187,6 +187,136 @@
             border-left: 4px solid #2196f3;
         }
 
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: #fafafa;
+            color: #333;
+            font-size: 0.95em;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+            background-color: #fff;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 25px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            color: #333;
+            font-size: 1.35em;
+            font-weight: 600;
+        }
+
+        .qa-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .qa-card {
+            background: #fbfbfd;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .qa-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+        }
+
+        .qa-question-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .qa-badge {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+            border-radius: 6px;
+            padding: 4px 9px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .qa-question-text {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 1.02em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .qa-answer-box {
+            background: #ffffff;
+            border-left: 3px solid #11998e;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-left: 38px;
+        }
+
+        .qa-answer-label {
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #0f766e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .qa-answer-text {
+            color: #374151;
+            font-size: 0.95em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #667eea;
@@ -213,8 +343,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Q&A Generator</h1>
-        <p class="subtitle">Upload a PDF document to generate questions and answers</p>
+        <h1>AI Question Generator</h1>
+        <p class="subtitle">Upload a PDF document to generate tailored questions and answers</p>
 
         <div id="messageBox" class="message"></div>
 
@@ -227,13 +357,39 @@
             </div>
             <div id="fileName" class="file-name" style="display: none;"></div>
 
+            <div class="options-grid">
+                <div class="form-group">
+                    <label for="questionType">Question Type</label>
+                    <select id="questionType" class="form-select">
+                        <option value="MCQ">MCQ</option>
+                        <option value="Short Answer" selected>Short Answer</option>
+                        <option value="True/False">True/False</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty" class="form-select">
+                        <option value="Easy">Easy</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="Hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+
             <button id="uploadBtn" class="btn btn-upload" disabled>Upload PDF</button>
             <button id="generateBtn" class="btn btn-generate">Generate Q&A</button>
-            <a id="downloadBtn" class="btn btn-download" style="text-decoration: none; display: block; text-align: center;">Download CSV</a>
         </div>
 
         <div class="loader" id="loader"></div>
         <div class="progress-text" id="progressText"></div>
+
+        <div id="resultsSection" class="results-section">
+            <div class="results-header">
+                <h2 class="results-title">Generated Questions & Answers</h2>
+            </div>
+            <div id="qaList" class="qa-list"></div>
+            <a id="downloadBtn" class="btn btn-download" style="text-decoration: none; display: block; text-align: center;">Download CSV</a>
+        </div>
     </div>
 
     <script>
@@ -247,8 +403,25 @@
         const messageBox = document.getElementById('messageBox');
         const loader = document.getElementById('loader');
         const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const qaList = document.getElementById('qaList');
+
+        const questionTypeSelect = document.getElementById('questionType');
+        const difficultySelect = document.getElementById('difficulty');
 
         let uploadedFilePath = '';
+
+        // Clean Markdown formatting: **bold**, *italic*, and `code` -> normal text
+        function cleanMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '$1')   // **bold** -> normal text
+                .replace(/__(.*?)__/g, '$1')       // __bold__ -> normal text
+                .replace(/\*(.*?)\*/g, '$1')       // *italic* -> normal text
+                .replace(/_(.*?)_/g, '$1')         // _italic_ -> normal text
+                .replace(/`([^`]+)`/g, '$1')       // `code` -> normal text
+                .trim();
+        }
 
         // File input change handler
         pdfFileInput.addEventListener('change', function(e) {
@@ -260,9 +433,11 @@
                 fileName.style.display = 'block';
                 uploadBtn.disabled = false;
 
-                // Hide generate and download buttons
+                // Hide generate and download buttons and reset results
                 generateBtn.style.display = 'none';
                 downloadBtn.style.display = 'none';
+                resultsSection.style.display = 'none';
+                qaList.innerHTML = '';
                 uploadedFilePath = '';
             }
         });
@@ -342,10 +517,14 @@
             generateBtn.disabled = true;
             showLoader(true, 'Generating questions and answers... This may take a few minutes.');
             hideMessage();
+            resultsSection.style.display = 'none';
+            qaList.innerHTML = '';
 
             try {
                 const formData = new FormData();
                 formData.append('pdf_filename', uploadedFilePath);
+                formData.append('question_type', questionTypeSelect.value);
+                formData.append('difficulty', difficultySelect.value);
 
                 const response = await fetch('/analyze', {
                     method: 'POST',
@@ -358,7 +537,51 @@
                     showMessage('Error: ' + data.error, 'error');
                     console.error('Full error details:', data.details);
                 } else if (data.output_file) {
-                    showMessage('Q&A generated successfully! Download your file below.', 'success');
+                    showMessage('Q&A generated successfully! View the results below.', 'success');
+
+                    // Populate rendered Q&A cards
+                    if (data.qa_list && data.qa_list.length > 0) {
+                        data.qa_list.forEach((item, index) => {
+                            const card = document.createElement('div');
+                            card.className = 'qa-card';
+
+                            const questionBox = document.createElement('div');
+                            questionBox.className = 'qa-question-box';
+
+                            const badge = document.createElement('span');
+                            badge.className = 'qa-badge';
+                            badge.textContent = `Q${item.number || (index + 1)}`;
+
+                            const questionText = document.createElement('div');
+                            questionText.className = 'qa-question-text';
+                            questionText.textContent = cleanMarkdown(item.question);
+
+                            questionBox.appendChild(badge);
+                            questionBox.appendChild(questionText);
+
+                            const answerBox = document.createElement('div');
+                            answerBox.className = 'qa-answer-box';
+
+                            const answerLabel = document.createElement('div');
+                            answerLabel.className = 'qa-answer-label';
+                            answerLabel.textContent = 'Answer';
+
+                            const answerText = document.createElement('div');
+                            answerText.className = 'qa-answer-text';
+                            answerText.textContent = cleanMarkdown(item.answer);
+
+                            answerBox.appendChild(answerLabel);
+                            answerBox.appendChild(answerText);
+
+                            card.appendChild(questionBox);
+                            card.appendChild(answerBox);
+                            qaList.appendChild(card);
+                        });
+
+                        resultsSection.style.display = 'block';
+                    }
+
+                    // Setup CSV download button below results
                     downloadBtn.href = '/' + data.output_file;
                     downloadBtn.download = 'QA.csv';
                     downloadBtn.style.display = 'block';
