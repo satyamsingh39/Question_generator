@@ -8,7 +8,7 @@ An AI-powered web application that automatically generates questions and answers
 - **Registration Number**: 23FE10CDS00413
 - **Branch**: Data Science
 - **Batch**: F
-- **Project Title**: AI Question Generator
+- **Project Title**: AI Question Answer Generator
 - **GitHub**: [@satyamsingh39](https://github.com/satyamsingh39)
 
 ---
