@@ -138,7 +138,7 @@ def file_processing(file_path):
     # Split text for question generation
     splitter_ques_gen = TokenTextSplitter(
         model_name="gpt-3.5-turbo",
-        chunk_size=5000,
+        chunk_size=3500,
         chunk_overlap=100
     )
 
@@ -179,10 +179,12 @@ def llm_pipeline(file_path, question_type="Short Answer", difficulty="Medium"):
         input_variables=["text", "question_type", "difficulty"]
     )
 
-    # Prepare document text
+    # Prepare document text and cap to a safe size (~3500 tokens / ~14000 chars) to prevent Groq 413 TPM limit errors
     document_text = "\n\n".join(
-        doc.page_content for doc in document_ques_gen
-    )
+        doc.page_content for doc in document_ques_gen[:1]
+    ) if document_ques_gen else ""
+    if len(document_text) > 14000:
+        document_text = document_text[:14000]
 
     # Generate questions
     formatted_prompt = PROMPT_QUESTIONS.format(
